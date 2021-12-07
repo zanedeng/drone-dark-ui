@@ -33,7 +33,7 @@ steps:
   image: plugins/docker:18
   settings:
     debug: true
-    storage_driver: vfs
+#     storage_driver: vfs
     repo: zanedeng/drone_dark_ui
     dockerfile: docker/Dockerfile.server.linux.amd64
     username:
