@@ -1,0 +1,52 @@
+# pipeline的名称
+name: default
+# 定义pipeline
+kind: pipeline
+type: docker
+clone:
+  disable: true
+# 定义执行步骤
+steps:
+- name: clone
+  image: alpine/git
+  commands:
+  - git clone https://github.com/drone/drone.git .
+  - git checkout ${DRONE_TAG}
+
+- name: build
+  image: golang:1.14.4
+  commands:
+  - ls -lat
+  - go env -w GOPROXY=https://goproxy.cn
+  - go get -v -insecure github.com/zanedeng/drone-ui
+  - sed -i 's/github.com\\/drone\\/drone-ui/github.com\\/zanedeng\\/drone-ui/' ./handler/web/logout.go
+  - sed -i 's/github.com\\/drone\\/drone-ui/github.com\\/zanedeng\\/drone-ui/' ./handler/web/pages.go
+  - sed -i 's/github.com\\/drone\\/drone-ui/github.com\\/zanedeng\\/drone-ui/' ./handler/web/web.go
+  - sh scripts/build.sh
+  - ls -lat
+  environment:
+    GOARCH: amd64
+    GOOS: linux
+
+
+- name: publish
+  image: plugins/docker:18
+  settings:
+    debug: true
+    storage_driver: vfs
+    repo: zanedeng/drone_dark_ui
+    dockerfile: docker/Dockerfile.server.linux.amd64
+    username:
+      from_secret: docker_username
+    password:
+      from_secret: docker_password
+    insecure: true
+    tags:
+      - latest
+      - v1.${DRONE_BUILD_NUMBER}
+
+trigger:
+  event:
+  - push
+  branch:
+  - main
